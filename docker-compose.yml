@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  kafka-server:
+    container_name: kafka-server
+    env_file:
+      - .env
+    environment:
+      KAFKA_PROCESS_ROLES: ${KAFKA_PROCESS_ROLES}
+    image: apache/kafka:latest
+    ports:
+      - "9092:9092"
+    command: |
+      bash -c "
+      echo ::::::::::::::::::::: Starting Zookeeper Server ::::::::::::::::::::: &&
+      /opt/kafka/bin/zookeeper-server-start.sh /opt/kafka/config/zookeeper.properties &
+      sleep 5 &&
+      echo ::::::::::::::::::::: Starting Kafka Server ::::::::::::::::::::: &&
+      /opt/kafka/bin/kafka-server-start.sh /opt/kafka/config/server.properties &
+      sleep 5 &&
+      echo ::::::::::::::::::::: Creating topic $TOPIC_NAME ::::::::::::::::::::: &&
+      /opt/kafka/bin/kafka-topics.sh --create --topic $TOPIC_NAME --bootstrap-server localhost:9092
+      wait
+      "
+
+  # # SQL storage
+  # events_storage:
+  #   container_name: events_storage
+  #   depends_on:
+  #     - kafka-server
+
+  # # lambda function
+  # events_generator:
+  #   container_name: events_generator
+  #   depends_on:
+  #     - kafka-server
+
+  # # spark application
+  # streaming_ingestion:
+  #   container_name: streaming_ingestion
