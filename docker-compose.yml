@@ -38,3 +38,6 @@ services:
   # # spark application
   # streaming_ingestion:
   #   container_name: streaming_ingestion
+  #   depends_on:
+  #     - kafka-server
+  #     - events_storage
