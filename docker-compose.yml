@@ -9,7 +9,12 @@ services:
       KAFKA_PROCESS_ROLES: ${KAFKA_PROCESS_ROLES}
       KAFKA_LISTENERS: PLAINTEXT://:9092
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-server:9092
-    image: apache/kafka:latest
+    healthcheck:
+      test: "echo 'exit' | nc localhost 9092"
+      interval: 30s
+      timeout: 30s
+      retries: 3
+    image: apache/kafka:3.7.2
     ports:
       - "9092:9092"
     command: |
@@ -38,7 +43,8 @@ services:
       dockerfile: Dockerfile.Python
     container_name: events_generator
     depends_on:
-      - kafka-server
+      kafka-server:
+        condition: service_healthy
     env_file:
       - .env
     restart: on-failure
