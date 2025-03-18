@@ -38,7 +38,7 @@ services:
         condition: service_healthy
     environment:
       MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: streaming_db
+      MYSQL_DATABASE: events_storage
       MYSQL_USER: user
       MYSQL_PASSWORD: password
     healthcheck:
@@ -50,6 +50,8 @@ services:
     ports:
       - "3306:3306"
     restart: always
+    volumes:
+      - ./streaming_ingestion/infrastructure/events_storage.sql:/docker-entrypoint-initdb.d/01_init.sql
 
   # # lambda function
   events_generator:
