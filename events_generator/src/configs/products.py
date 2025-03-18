@@ -1,3 +1,3 @@
 class Products:
-    PRODUCTS_IDS = []
-    PRODUCTS_COUNT = len(PRODUCTS_IDS)
+    PRODUCTS_IDS = ["123", "456", "789"]
+    PRODUCTS_RANGE = len(PRODUCTS_IDS)

@@ -1,3 +1,8 @@
 class Users:
-    USERS_IDS = []
-    USERS_COUNT = len(USERS_IDS)
+    USERS_IDS = [
+        "234",
+        "5678",
+        "208",
+        "619"
+    ]
+    USERS_RANGE = len(USERS_IDS)
