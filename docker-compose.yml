@@ -7,6 +7,8 @@ services:
       - .env
     environment:
       KAFKA_PROCESS_ROLES: ${KAFKA_PROCESS_ROLES}
+      KAFKA_LISTENERS: PLAINTEXT://:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-server:9092
     image: apache/kafka:latest
     ports:
       - "9092:9092"
@@ -19,7 +21,7 @@ services:
       /opt/kafka/bin/kafka-server-start.sh /opt/kafka/config/server.properties &
       sleep 5 &&
       echo ::::::::::::::::::::: Creating topic $TOPIC_NAME ::::::::::::::::::::: &&
-      /opt/kafka/bin/kafka-topics.sh --create --topic $TOPIC_NAME --bootstrap-server localhost:9092
+      /opt/kafka/bin/kafka-topics.sh --create --topic $TOPIC_NAME --bootstrap-server kafka-server:$KAFKA_PORT
       wait
       "
 
@@ -30,10 +32,16 @@ services:
   #     - kafka-server
 
   # # lambda function
-  # events_generator:
-  #   container_name: events_generator
-  #   depends_on:
-  #     - kafka-server
+  events_generator:
+    build:
+      context: events_generator/.
+      dockerfile: Dockerfile.Python
+    container_name: events_generator
+    depends_on:
+      - kafka-server
+    env_file:
+      - .env
+    restart: on-failure
 
   # # spark application
   # streaming_ingestion:
