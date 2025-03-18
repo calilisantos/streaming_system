@@ -31,10 +31,25 @@ services:
       "
 
   # # SQL storage
-  # events_storage:
-  #   container_name: events_storage
-  #   depends_on:
-  #     - kafka-server
+  events_storage:
+    container_name: events_storage
+    depends_on:
+      kafka-server:
+        condition: service_healthy
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: streaming_db
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 30s
+      retries: 3
+      timeout: 30s
+    image: mysql:8.0
+    ports:
+      - "3306:3306"
+    restart: always
 
   # # lambda function
   events_generator:
