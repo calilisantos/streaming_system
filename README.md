@@ -32,3 +32,10 @@ docker exec -it kafka-server /opt/kafka/bin/kafka-topics.sh --describe --topic a
 # consumindo mensagens:
 docker exec -it kafka-server /opt/kafka/bin/kafka-console-consumer.sh --topic app-events --from-beginning --bootstrap-server kafka-server:9092
 ```
+
+### acessando banco sql:
+```bash
+docker exec -it events_storage mysql -u root -p
+# senha: root
+```
+
