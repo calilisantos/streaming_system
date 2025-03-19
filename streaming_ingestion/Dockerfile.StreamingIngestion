@@ -1,0 +1,13 @@
+FROM apache/spark-py:v3.4.0
+
+COPY ingestion.py /app/ingestion.py
+
+# Add spark-submit path
+ENV PATH="$PATH:/opt/spark/bin"
+
+# To ivy2 directory access
+USER root
+
+# Installing kafka dependencies
+CMD ["spark-submit", "--packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.0", "/app/ingestion.py"]
+
