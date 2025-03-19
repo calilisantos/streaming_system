@@ -1,3 +1,27 @@
+# FROM apache/spark-py:v3.4.0
+
+# COPY ingestion.py /app/ingestion.py
+
+# # Add spark-submit path
+# ENV PATH="$PATH:/opt/spark/bin"
+
+# # To ivy2 directory access
+# USER root
+
+# RUN wget https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java-8.0.11.tar.gz && \
+#     tar -xvf mysql-connector-java-8.0.11.tar.gz && \
+#     cp mysql-connector-java-8.0.11/mysql-connector-java-8.0.11.jar /opt/spark/jars/ && \
+#     rm -rf mysql-connector-java-8.0.11.tar.gz mysql-connector-java-8.0.11
+
+# # Installing kafka dependencies
+# # CMD ["spark-submit", "--packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.0", "/app/ingestion.py"]
+# CMD ["spark-submit", \
+#     "--jars", "/opt/spark/jars/mysql-connector-java-8.0.11.jar", \
+#     "--packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.0", \
+#     "/app/ingestion.py"]
+# #     "--packages", "mysql:mysql-connector-java:8.0.11", \
+# #     "--packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.0", \
+# #     "/app/ingestion.py"]
 FROM apache/spark-py:v3.4.0
 
 COPY ingestion.py /app/ingestion.py
@@ -8,9 +32,11 @@ ENV PATH="$PATH:/opt/spark/bin"
 # To ivy2 directory access
 USER root
 
+# Baixando o conector JDBC para PostgreSQL
+RUN wget https://jdbc.postgresql.org/download/postgresql-42.6.0.jar -O /opt/spark/jars/postgresql-42.6.0.jar
+
 # Installing kafka dependencies
-# CMD ["spark-submit", "--packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.0", "/app/ingestion.py"]
 CMD ["spark-submit", \
-    "--packages", "mysql:mysql-connector-java:8.0.33", \
+    "--jars", "/opt/spark/jars/postgresql-42.6.0.jar", \
     "--packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.0", \
     "/app/ingestion.py"]

@@ -34,13 +34,22 @@ raw_data = (
 
 # função de persistência
 def write_to_mysql(df, epoch_id, table_name):
+    # df.write \
+    #     .format("jdbc") \
+    #     .option("url", "jdbc:mysql://events_storage:3306/events_storage") \
+    #     .option("dbtable", table_name) \
+    #     .option("user", "user") \
+    #     .option("password", "password") \
+    #     .option("driver", "com.mysql.cj.jdbc.Driver") \
+    #     .mode("append") \
+    #     .save()
     df.write \
         .format("jdbc") \
-        .option("url", "jdbc:mysql://events_storage:3306/events_storage") \
+        .option("url", "jdbc:postgresql://events_storage:5432/events_storage") \
         .option("dbtable", table_name) \
         .option("user", "user") \
         .option("password", "password") \
-        .option("driver", "com.mysql.cj.jdbc.Driver") \
+        .option("driver", "org.postgresql.Driver") \
         .mode("append") \
         .save()
 

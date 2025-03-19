@@ -35,8 +35,19 @@ docker exec -it kafka-server /opt/kafka/bin/kafka-console-consumer.sh --topic ap
 
 ### acessando banco sql:
 ```bash
-docker exec -it events_storage mysql -u root -p
-# senha: root
+docker exec -it events_storage bash
+
+# dentro do container, acessando o banco:
+psql -U user -d events_storage
+
+# consumindo tabelas: (SQL padrão)
+SELECT * FROM event_counts;
+
+# sair do banco:
+\q
+
+# ou sair do container:
+exit
 ```
 
 ### acompanhando a ingestão de dados:
