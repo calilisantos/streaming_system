@@ -1,4 +1,4 @@
-from pyspark.sql import functions as F, SparkSession, types as T, window as W
+from pyspark.sql import functions as F, SparkSession, types as T, Window as W
 
 spark = (
     SparkSession.builder
@@ -9,6 +9,7 @@ spark = (
 )
 
 spark.sparkContext.setLogLevel("ERROR")
+spark.conf.set("spark.sql.streaming.statefulOperator.checkCorrectness.enabled", "false")
 
 schema = T.StructType([
     T.StructField("user_id", T.LongType()),
@@ -30,83 +31,69 @@ raw_data = (
     .select("data.*")
 )
 
+
+# função de persistência
+def write_to_mysql(df, epoch_id, table_name):
+    df.write \
+        .format("jdbc") \
+        .option("url", "jdbc:mysql://events_storage:3306/events_storage") \
+        .option("dbtable", table_name) \
+        .option("user", "user") \
+        .option("password", "password") \
+        .option("driver", "com.mysql.cj.jdbc.Driver") \
+        .mode("append") \
+        .save()
+
+
 # aggreate to event_counts table
 
 event_counts = (
     raw_data
-    .withWatermark("timestamp", "1 minute")  # Define um watermark de 10 minutos
+    .withWatermark("timestamp", "5 minutes")  # Define um watermark de 10 minutos
     .groupBy("event_type")
     .agg(F.count("event_type").alias("occurrences"))
     .writeStream
     .outputMode("update")  # "append" não é permitido para agregações em streaming
-    .format("console")
-    # .format("jdbc")
-    # .option("url", "jdbc:mysql://your-db:3306/events_storage")
-    # .option("dbtable", "event_counts")
-    # .option("user", "your_user")
-    # .option("password", "your_password")
+    # .format("console")
+    .foreachBatch(lambda df, epoch_id: write_to_mysql(df, epoch_id, "event_counts"))
     .trigger(processingTime="1 minute")  # Garante execução a cada 1 minuto
     .start()
-    # .awaitTermination()
 )
 
 # aggreate to user_event_counts table
 
 user_event_counts = (
     raw_data
-    .withWatermark("timestamp", "1 minute")  # Define um watermark de 10 minutos
+    .withWatermark("timestamp", "5 minutes")  # Define um watermark de 10 minutos
     .groupBy("user_id", "event_type")
     .agg(F.count("event_type").alias("occurrences"))
-    .orderBy("user_id")
     .writeStream
     .outputMode("update")  # "append" não é permitido para agregações em streaming
-    .format("console")
-    # .format("jdbc")
-    # .option("url", "jdbc:mysql://your-db:3306/events_storage")
-    # .option("dbtable", "event_counts")
-    # .option("user", "user_event_counts")
-    # .option("password", "your_password")
+    # .format("console")
+    .foreachBatch(lambda df, epoch_id: write_to_mysql(df, epoch_id, "user_event_counts"))
     .trigger(processingTime="1 minute")  # Garante execução a cada 1 minuto
     .start()
-    # .awaitTermination()
 )
 
-# aggreate to user_avg_waiting_time table
+user_avg_waiting_time = (
+    raw_data
+    .withWatermark("timestamp", "5 minutes")
+    .groupBy("user_id", F.window("timestamp", "2 minutes"))
+    .agg(
+        (F.max("timestamp").cast("long") - F.min("timestamp").cast("long")).alias("time_diff")
+    )
+    .groupBy("user_id")
+    .agg(F.round(F.avg("time_diff"), 2).alias("avg_waiting_time"))
+    .writeStream
+    .outputMode("update")
+    # .format("console")
+    .foreachBatch(lambda df, epoch_id: write_to_mysql(df, epoch_id, "user_avg_waiting_time"))
+    .trigger(processingTime="1 minute")
+    .start()
 
-# (
-#     # raw_data
-#     # .withColumn("prev_timestamp", F.lag("timestamp").over(W.Window.partitionBy("user_id")))
-
-
-# )
+)
 
 
 event_counts.awaitTermination()
 user_event_counts.awaitTermination()
-
-
-# raw_data \
-#     .writeStream \
-#     .outputMode("append") \
-#     .format("console") \
-#     .start() \
-#     .awaitTermination()
-
-# def write_to_mysql(df, epoch_id):
-#     df.write \
-#         .format("jdbc") \
-#         .option("url", "jdbc:mysql://mysql-server:3306/events_storage") \
-#         .option("dbtable", "events") \
-#         .option("user", "root") \
-#         .option("password", "root") \
-#         .mode("append") \
-#         .save()
-
-# writing in mysql db
-# raw_data \
-#     .writeStream \
-#     .outputMode("append") \
-#     .foreachBatch(write_to_mysql) \
-#     .start() \
-#     .awaitTermination()
-
+user_avg_waiting_time.awaitTermination()

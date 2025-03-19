@@ -9,5 +9,8 @@ ENV PATH="$PATH:/opt/spark/bin"
 USER root
 
 # Installing kafka dependencies
-CMD ["spark-submit", "--packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.0", "/app/ingestion.py"]
-
+# CMD ["spark-submit", "--packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.0", "/app/ingestion.py"]
+CMD ["spark-submit", \
+    "--packages", "mysql:mysql-connector-java:8.0.33", \
+    "--packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.0", \
+    "/app/ingestion.py"]

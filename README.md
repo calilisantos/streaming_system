@@ -20,7 +20,7 @@ docker-compose build --no-cache
 docker-compose up -d
 ```
 
-### comandos para ler o tópico
+### comandos para ler o tópico do kafka:
 
 ```bash
 # confirmando criação do tópico:
@@ -39,3 +39,7 @@ docker exec -it events_storage mysql -u root -p
 # senha: root
 ```
 
+### acompanhando a ingestão de dados:
+```bash
+docker logs -f streaming_ingestion
+```
