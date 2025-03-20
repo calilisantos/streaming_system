@@ -37,18 +37,17 @@ services:
       kafka-server:
         condition: service_healthy
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: events_storage
-      MYSQL_USER: user
-      MYSQL_PASSWORD: password
+      POSTGRES_DB: events_storage
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD", "pg_isready", "-U", "user", "-d", "events_storage"]
       interval: 30s
       retries: 3
       timeout: 30s
-    image: mysql:8.0
+    image: postgres:13
     ports:
-      - "3306:3306"
+      - "5432:5432"
     restart: always
     volumes:
       - ./streaming_ingestion/infrastructure/events_storage.sql:/docker-entrypoint-initdb.d/01_init.sql
