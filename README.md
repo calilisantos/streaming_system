@@ -24,7 +24,7 @@ O objetivo deste projeto é simular um sistema de ingestão de eventos em tempo 
 
 São quatro serviços executando em conjunto:
 
-- **event_generator**: Gera eventos aleatórios e os envia para o tópico **app-events** no **Apache Kafka** `a cada 5 segundos`.
+- **events_generator**: Gera eventos aleatórios e os envia para o tópico **app-events** no **Apache Kafka** `a cada 5 segundos`.
 - **kafka-server**: Servidor **Apache Kafka** que armazena o tópico **app-events**.
 - **streaming_ingestion**: Serviço **Apache Spark** que consome os eventos do tópico **app-events**, com as soluções `streaming` do motor, e os armazena no banco de dados **events_storage** `a cada minuto`.
 - **events_storage**: Banco de dados **PostgresSQL** que armazena os eventos recebidos nas seguintes entidades:
@@ -47,7 +47,7 @@ docker-compose up -d # requisito para os recursos abaixo
 
 Para manutenção e evolução do sistema, os seguintes comandos podem ser úteis:
 
-* **removendo recursos do sistema:**
+* **removendo todos os recursos do sistema:**
 ```bash
 docker-compose down --rmi all --volumes --remove-orphans
 docker system prune -a --volumes -f
@@ -60,7 +60,7 @@ docker images  # Verifica se ainda há imagens
 docker volume ls  # Verifica se ainda há volumes
 ```
 
-* **removendo se necessário:**
+* **removendo individualmente se necessário:**
 ```bash
 docker rm -f $(docker ps -aq)  # Remove todos os containers
 docker rmi -f $(docker images -q)  # Remove todas as imagens
@@ -72,6 +72,12 @@ docker volume rm $(docker volume ls -q)  # Remove todos os volumes
 docker-compose build --no-cache
 docker-compose up -d
 ```
+
+* **acompanhando logs de um servico em específico:**
+```bash
+docker-compose logs -f events_generator
+```
+
 
 ### <a id='kafka'>[Acessando mensageria](#topicos)</a>
 
