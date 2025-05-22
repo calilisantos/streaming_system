@@ -83,17 +83,17 @@ docker-compose logs -f events_generator
 
 * **confirmando criação do tópico Kafka:**
 ```bash
-docker exec -it kafka-server /opt/kafka/bin/kafka-topics.sh --list --bootstrap-server kafka-server:9092
+docker exec -it kafka-server kafka-topics --list --bootstrap-server kafka-server:9092
 ```
 
 * **detalhes do tópico:**
 ```bash
-docker exec -it kafka-server /opt/kafka/bin/kafka-topics.sh --describe --topic app-events --bootstrap-server kafka-server:9092
+docker exec -it kafka-server kafka-topics --describe --topic app-events --bootstrap-server kafka-server:9092
 ```
 
 * **consumindo mensagens do tópico:**
 ```bash
-docker exec -it kafka-server /opt/kafka/bin/kafka-console-consumer.sh --topic app-events --from-beginning --bootstrap-server kafka-server:9092
+docker exec -it kafka-server kafka-console-consumer --topic app-events --from-beginning --bootstrap-server kafka-server:9092
 ```
 
 ### <a id='sql'>[Acessando banco de dados](#topicos)</a>
