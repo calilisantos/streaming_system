@@ -32,8 +32,7 @@ raw_data = (
 )
 
 
-# função de persistência
-def write_to_mysql(df, epoch_id, table_name):
+def write_to_postgres(df, epoch_id, table_name):
     df.write \
         .format("jdbc") \
         .option("url", "jdbc:postgresql://events_storage:5432/events_storage") \
@@ -45,8 +44,6 @@ def write_to_mysql(df, epoch_id, table_name):
         .save()
 
 
-# aggreate to event_counts table
-
 event_counts = (
     raw_data
     .withWatermark("timestamp", "5 minutes")  # Define um watermark de 10 minutos
@@ -55,12 +52,10 @@ event_counts = (
     .writeStream
     .outputMode("update")  # "append" não é permitido para agregações em streaming
     # .format("console")
-    .foreachBatch(lambda df, epoch_id: write_to_mysql(df, epoch_id, "event_counts"))
+    .foreachBatch(lambda df, epoch_id: write_to_postgres(df, epoch_id, "event_counts"))
     .trigger(processingTime="1 minute")  # Garante execução a cada 1 minuto
     .start()
 )
-
-# aggreate to user_event_counts table
 
 user_event_counts = (
     raw_data
@@ -70,7 +65,7 @@ user_event_counts = (
     .writeStream
     .outputMode("update")  # "append" não é permitido para agregações em streaming
     # .format("console")
-    .foreachBatch(lambda df, epoch_id: write_to_mysql(df, epoch_id, "user_event_counts"))
+    .foreachBatch(lambda df, epoch_id: write_to_postgres(df, epoch_id, "user_event_counts"))
     .trigger(processingTime="1 minute")  # Garante execução a cada 1 minuto
     .start()
 )
@@ -87,7 +82,7 @@ user_avg_waiting_time = (
     .writeStream
     .outputMode("update")
     # .format("console")
-    .foreachBatch(lambda df, epoch_id: write_to_mysql(df, epoch_id, "user_avg_waiting_time"))
+    .foreachBatch(lambda df, epoch_id: write_to_postgres(df, epoch_id, "user_avg_waiting_time"))
     .trigger(processingTime="1 minute")
     .start()
 
