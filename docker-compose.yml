@@ -34,9 +34,6 @@ services:
 
   events_storage:
     container_name: events_storage
-    depends_on:
-      kafka-server:
-        condition: service_healthy
     environment:
       POSTGRES_DB: events_storage
       POSTGRES_USER: user
@@ -62,6 +59,11 @@ services:
       kafka-server:
         condition: service_healthy
     restart: on-failure
+    healthcheck:
+      test: ["CMD-SHELL", "grep -q 'Writing event' /app/logs/events_generator.log"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   streaming_ingestion:
     build:
@@ -72,6 +74,6 @@ services:
       events_storage:
         condition: service_healthy
       events_generator:
-        condition: service_started
+        condition: service_healthy
     ports:
       - "4040:4040"
