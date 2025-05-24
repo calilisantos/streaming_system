@@ -1,13 +1,20 @@
-from pyspark.sql import functions as F, SparkSession, types as T, Window as W
+from pyspark.sql import SparkSession, functions as F, types as T
+
+
+TABLE_COLUMNS = {
+    "raw_events": ["value", "topic", "partition", "offset", "timestamp"],
+    "parsed_events": ["user_id", "event_type", "timestamp", "game_id", "payload"],
+    "event_counts": ["event_type", "occurrences"],
+    "user_event_counts": ["event_type", "user_id", "occurrences"],
+    "user_avg_waiting_time": ["user_id", "avg_waiting_time"],
+}
 
 spark = (
     SparkSession.builder
     .appName("streaming-ingestion")
-        .master("local[*]")
-            .getOrCreate()
-
+    .master("local[*]")
+    .getOrCreate()
 )
-
 spark.sparkContext.setLogLevel("ERROR")
 spark.conf.set("spark.sql.streaming.statefulOperator.checkCorrectness.enabled", "false")
 
@@ -19,20 +26,18 @@ schema = T.StructType([
     T.StructField("payload", T.MapType(T.StringType(), T.StringType())),
 ])
 
-raw_data = (
-    spark.readStream
-    .format("kafka")
-    .option("kafka.bootstrap.servers", "kafka-server:9092")
-    .option("subscribe", "app-events")
-    .option("startingOffsets", "earliest")
-    .load()
-    .selectExpr("CAST(value AS STRING) as json")
-    .select(F.from_json(F.col("json"), schema).alias("data"))
-    .select("data.*")
-)
-
-
+# foreachBatch function
 def write_to_postgres(df, epoch_id, table_name):
+    selected_columns = TABLE_COLUMNS[table_name]
+
+    if "payload" in selected_columns:
+        df = df.withColumn("payload", F.to_json("payload"))
+
+    df = df.select(
+        F.lit(epoch_id).alias("batch_id"),
+        *selected_columns
+    )
+
     df.write \
         .format("jdbc") \
         .option("url", "jdbc:postgresql://events_storage:5432/events_storage") \
@@ -43,52 +48,94 @@ def write_to_postgres(df, epoch_id, table_name):
         .mode("append") \
         .save()
 
+# reading topic
+raw_data = (
+    spark.readStream
+    .format("kafka")
+    .option("kafka.bootstrap.servers", "kafka-server:9092")
+    .option("subscribe", "app-events")
+    .option("startingOffsets", "earliest")
+    .load()
+)
 
-event_counts = (
+# writing in bronze layer
+(
     raw_data
-    .withWatermark("timestamp", "5 minutes")  # Define um watermark de 10 minutos
+    .writeStream
+    .outputMode("append")
+    .foreachBatch(lambda df, epoch_id: write_to_postgres(df, epoch_id, "raw_events"))
+    .start()
+)
+
+parsed_data = (
+    raw_data.selectExpr("CAST(value AS STRING) as json")
+    .select(F.from_json(F.col("json"), schema).alias("data"))
+    .select("data.*")
+)
+
+# writing in silver layer
+(
+    parsed_data
+    .writeStream
+    .outputMode("append")
+    .foreachBatch(lambda df, epoch_id: write_to_postgres(df, epoch_id, "parsed_events"))
+    .start()
+)
+
+# writing in gold - event_counts
+(
+    parsed_data
+    .withWatermark("timestamp", "5 minutes")
     .groupBy("event_type")
     .agg(F.count("event_type").alias("occurrences"))
     .writeStream
-    .outputMode("update")  # "append" não é permitido para agregações em streaming
-    # .format("console")
+    .outputMode("update")
     .foreachBatch(lambda df, epoch_id: write_to_postgres(df, epoch_id, "event_counts"))
-    .trigger(processingTime="1 minute")  # Garante execução a cada 1 minuto
+    .trigger(processingTime="1 minute")
     .start()
 )
 
-user_event_counts = (
-    raw_data
-    .withWatermark("timestamp", "5 minutes")  # Define um watermark de 10 minutos
+# writing in gold - user_event_counts
+(
+    parsed_data
+    .withWatermark("timestamp", "5 minutes")
     .groupBy("user_id", "event_type")
     .agg(F.count("event_type").alias("occurrences"))
     .writeStream
-    .outputMode("update")  # "append" não é permitido para agregações em streaming
-    # .format("console")
+    .outputMode("update")
     .foreachBatch(lambda df, epoch_id: write_to_postgres(df, epoch_id, "user_event_counts"))
-    .trigger(processingTime="1 minute")  # Garante execução a cada 1 minuto
+    .trigger(processingTime="1 minute")
     .start()
 )
 
-user_avg_waiting_time = (
-    raw_data
+# writing in gold - user_avg_waiting_time
+(
+    parsed_data
     .withWatermark("timestamp", "5 minutes")
     .groupBy("user_id", F.window("timestamp", "2 minutes"))
-    .agg(
-        (F.max("timestamp").cast("long") - F.min("timestamp").cast("long")).alias("time_diff")
-    )
+    .agg((F.max("timestamp").cast("long") - F.min("timestamp").cast("long")).alias("time_diff"))
     .groupBy("user_id")
     .agg(F.round(F.avg("time_diff"), 2).alias("avg_waiting_time"))
     .writeStream
     .outputMode("update")
-    # .format("console")
     .foreachBatch(lambda df, epoch_id: write_to_postgres(df, epoch_id, "user_avg_waiting_time"))
     .trigger(processingTime="1 minute")
     .start()
-
 )
 
+# show data
+console_data = parsed_data
 
-event_counts.awaitTermination()
-user_event_counts.awaitTermination()
-user_avg_waiting_time.awaitTermination()
+def debug_console(df, epoch_id):
+    print(f"\n[DEBUG] EPOCH: {epoch_id}")
+    df.show(10, truncate=False)
+
+(
+    console_data
+    .writeStream
+    .outputMode("append")
+    .foreachBatch(debug_console)
+    .start()
+)
+
+spark.streams.awaitAnyTermination()

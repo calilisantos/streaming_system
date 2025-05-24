@@ -2,19 +2,19 @@ FROM apache/spark-py:v3.4.0
 
 COPY ingestion.py /app/ingestion.py
 
-# Add spark-submit path
+# add spark-submit path
 ENV PATH="$PATH:/opt/spark/bin"
 
-# To ivy2 directory access
+# to ivy2 directory access
 USER root
 
-# Getting PostgreSQL connector
+# getting postgresql connector
 RUN wget https://jdbc.postgresql.org/download/postgresql-42.6.0.jar -O /opt/spark/jars/postgresql-42.6.0.jar
 
-# Expose Spark UI port
+# expose Spark UI port
 EXPOSE 4040
 
-# Installing kafka and connector dependencies
+# installing kafka and connector dependencies
 CMD ["spark-submit", \
     "--conf", "spark.ui.host=0.0.0.0", \
     "--jars", "/opt/spark/jars/postgresql-42.6.0.jar", \

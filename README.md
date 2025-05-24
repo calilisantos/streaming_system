@@ -1,6 +1,6 @@
 # Boas vindas ao **streaming_system**!
 
-O objetivo deste projeto é simular um sistema de ingestão de eventos em tempo real, integrando o **Apache Kafka** como serviço de mensageria e o storage dos eventos com **PostgresSQL** através do **Apache Spark**.
+O objetivo deste projeto é simular um sistema de ingestão de eventos em tempo real, integrando o **Apache Kafka** como serviço de mensageria e o storage dos eventos com **PostgreSQL** através do **Apache Spark**.
 
 > **IMPORTANTE: Todos os cenários consideram a execução do projeto à partir da raiz do projeto.
 >  Logo após cloná-lo abra a pasta resultado em seu terminal:**
@@ -9,28 +9,46 @@ O objetivo deste projeto é simular um sistema de ingestão de eventos em tempo 
   >  ```
 
 # <a id='topicos'>Tópicos</a>
-- [Desenho do sistema](#design)
+- [Decisões arquiteturais](#arch)
+  - [Desenho do sistema](#design)
+  - [Diagrama das entidades](#eer)
 - [Executando projeto](#executing)
   - [Iniciando os serviços](#starting)
   - [Evoluindo o sistema](#evolving)
+- [Visão dos sistemas](#display)
+  - [Acompanhando geração de eventos](#lambda)
   - [Acessando mensageria](#kafka)
   - [Acessando banco de dados](#sql)
+    - [Visualizando métricas](#metrics)
   - [Acompanhando ingestão](#ingestion)
+- [Próximos passos](#next)
 
+## <a id='arch'>[Decisões arquiteturais](#topicos)</a>
 
-## <a id='design'>[Desenho do sistema](#topicos)</a>
+### <a id='design'>[Desenho do sistema](#topicos)</a>
 
-![Desenho do sistema](docs/system_design.png)
+![Desenho do sistema](docs/system_design_v2.png)
 
-São quatro serviços executando em conjunto:
+São cinco serviços executando em conjunto:
 
-- **events_generator**: Gera eventos aleatórios e os envia para o tópico **app-events** no **Apache Kafka** `a cada 5 segundos`.
 - **kafka-server**: Servidor **Apache Kafka** que armazena o tópico **app-events**.
+- **zookeeper**:  serviço que utiliza o **Apache Zookeeper** como gerenciador do servidor Kafka, permitindo a comunicação com seus recursos.
+- **events_generator**: gerador de eventos aleatórios para o tópico **app-events** no **Apache Kafka** `a cada 5 segundos`.
+  - baseado em **clean-architecture**
 - **streaming_ingestion**: Serviço **Apache Spark** que consome os eventos do tópico **app-events**, com as soluções `streaming` do motor, e os armazena no banco de dados **events_storage** `a cada minuto`.
-- **events_storage**: Banco de dados **PostgresSQL** que armazena os eventos recebidos nas seguintes entidades:
-  - **event_counts**: Contagem de eventos por tipo na janela de tempo.
-  - **user_event_counts**: Contagem de eventos por usuário na janela de tempo.
-  - **user_avg_waiting_time**: Tempo médio de espera dos últimos 3 minutos por usuário na janela de tempo.
+- **events_storage**: Servidor de banco de dados **PostgreSQL** que armazena os eventos recebidos, representando um **[datalake](#eer)**
+
+### <a id='eer'>[Diagrama das entidades](#topicos)</a>
+
+Baseado em **um sistema Kappa e o modelo medalhão (multi-hop)**, os artefatos de dados gerados são:
+
+![Diagrama Entidade-Relacionamento](docs/eer.png)
+
+- **raw_events**: buscando preservar a linhagem dos dados, persiste os dados brutos dos eventos do tópico consumidos;
+- **parsed_events**: servindo os dados acurados da camada anterior, permite a exploração do conteúdo dos eventos do tópico;
+- **event_counts**: tabela que agrega a contagem de eventos por tipo, na janela de tempo da ingestão.
+- **user_event_counts**: tabela que agrega a contagem de eventos por usuário, na janela de tempo da ingestão.
+- **user_avg_waiting_time**: tabela que agrega o tempo médio de espera dos últimos 3 minutos por usuário, na janela de tempo da ingestão.
 
 ## <a id='executing'>[Executando projeto](#topicos)</a>
 
@@ -71,6 +89,10 @@ docker volume rm $(docker volume ls -q)  # Remove todos os volumes
 ```bash
 docker-compose build --no-cache
 docker-compose up -d
+
+# ou de somente um container (que não seja dependência para outro):
+docker-compose build streaming_ingestion
+docker-compose up -d streaming_ingestion
 ```
 
 * **acompanhando logs de um servico em específico:**
@@ -78,6 +100,14 @@ docker-compose up -d
 docker-compose logs -f events_generator
 ```
 
+## <a id='display'>[Visão dos sistemas](#topicos)</a>
+
+### <a id='lambda'>[Acompanhando geração de eventos](#topicos)</a>
+
+* **acompanhando logs do events_generator:**
+```bash
+docker logs -f events_generator
+```
 
 ### <a id='kafka'>[Acessando mensageria](#topicos)</a>
 
@@ -128,9 +158,78 @@ SELECT * FROM event_counts;
 exit
 ```
 
+### <a id='metrics'>[Visualizando métricas](#topicos)</a>
+
+* **Contagem de eventos por tipo (Tabela event_counts):**
+```sql
+-- Mostra a contagem total de eventos por tipo
+SELECT
+  event_type,
+  SUM(event_count) AS total_events
+FROM
+  event_counts
+GROUP BY
+  event_type
+ORDER BY
+  total_events DESC;
+
+```
+
+* **Contagem de eventos por usuário (Tabela user_event_counts):**
+```sql
+-- Mostra a quantidade de eventos recebidos por cada usuário
+SELECT
+  user_id,
+  SUM(event_count) AS total_events
+FROM
+  user_event_counts
+GROUP BY
+  user_id
+ORDER BY
+  total_events DESC;
+
+-- Mostra a distribuição dos eventos por tipo e por usuário
+SELECT
+  user_id,
+  event_type,
+  SUM(event_count) AS total_by_type
+FROM
+  user_event_counts
+GROUP BY
+  user_id, event_type
+ORDER BY
+  user_id, total_by_type DESC;
+```
+
+* **Tempo médio de espera por usuário (Tabela user_avg_waiting_time):**
+```sql
+-- Mostra o tempo médio de espera atual por usuário (em segundos)
+SELECT
+  user_id,
+  ROUND(AVG(avg_waiting_time)::numeric, 2) AS mean_waiting_time_seconds
+FROM
+  user_avg_waiting_time
+GROUP BY
+  user_id
+ORDER BY
+  mean_waiting_time_seconds DESC;
+
+-- Mostra os usuários com maior tempo médio de espera registrado
+SELECT
+  user_id,
+  MAX(avg_waiting_time) AS max_waiting_time_seconds
+FROM
+  user_avg_waiting_time
+GROUP BY
+  user_id
+ORDER BY
+  max_waiting_time_seconds DESC
+LIMIT 10;
+```
+
 ### <a id='ingestion'>[Acompanhando ingestão](#topicos)</a>
 
-* **acompanhando logs do Spark:**
+* **acompanhando logs do Spark Streaming:**
 ```bash
 docker logs -f streaming_ingestion
 ```
@@ -138,3 +237,15 @@ docker logs -f streaming_ingestion
 * **acessando Spark UI:**
   * [http://localhost:4040](http://localhost:4040)
   
+### <a id='next'>[Próximos passos](#topicos)</a>
+* Adicionar camada de serving dos dados: 
+  * Com solução de visualização (como streamlit)
+  * Com interface ao banco de dados (como pgadmin)
+* Tuning do streaming_ingestion:
+  * Via Spark confs;
+  * Com refatoração do código-fonte;
+  * Integração com logs e configs do events_generator pensando em boas práticas
+* Prover integração contínua:
+  * Provisionar a aplicação
+  * Com esteira CI/CD
+  * Com orquestração dos containers via Kubernetes
