@@ -71,6 +71,8 @@ services:
       dockerfile: Dockerfile.StreamingIngestion
     container_name: streaming_ingestion
     depends_on:
+      kafka-server:
+        condition: service_healthy
       events_storage:
         condition: service_healthy
       events_generator:
