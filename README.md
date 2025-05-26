@@ -88,6 +88,7 @@ docker volume rm $(docker volume ls -q)  # Remove todos os volumes
 * **reconstruindo aplicação forçando pull das imagens:**
 ```bash
 docker-compose build --no-cache
+# na sequência, inicie os serviços
 docker-compose up -d
 
 # ou de somente um container (que não seja dependência para outro):

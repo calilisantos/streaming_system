@@ -28,9 +28,9 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     healthcheck:
       test: "echo 'exit' | nc localhost 9092"
-      interval: 20s
+      interval: 10s
       retries: 5
-      timeout: 10s
+      timeout: 5s
 
   events_storage:
     container_name: events_storage
@@ -40,9 +40,9 @@ services:
       POSTGRES_PASSWORD: password
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "user", "-d", "events_storage"]
-      interval: 30s
-      retries: 3
-      timeout: 30s
+      interval: 10s
+      retries: 5
+      timeout: 5s
     image: postgres:13
     ports:
       - "5432:5432"
@@ -62,8 +62,8 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "grep -q 'Writing event' /app/logs/events_generator.log"]
       interval: 10s
-      timeout: 5s
       retries: 5
+      timeout: 5s
 
   streaming_ingestion:
     build:
