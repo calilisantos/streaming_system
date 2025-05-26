@@ -1,4 +1,4 @@
-# Boas vindas ao **streaming_system**!
+# Boas vindas ao **streaming_system**
 
 O objetivo deste projeto é simular um sistema de ingestão de eventos em tempo real, integrando o **Apache Kafka** como serviço de mensageria e o storage dos eventos com **PostgreSQL** através do **Apache Spark**.
 
