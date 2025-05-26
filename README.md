@@ -166,13 +166,14 @@ exit
 -- Mostra a contagem total de eventos por tipo
 SELECT
   event_type,
-  SUM(event_count) AS total_events
+  SUM(occurrences) AS total_events
 FROM
   event_counts
 GROUP BY
   event_type
 ORDER BY
   total_events DESC;
+  event_type | total_events
 
 ```
 
@@ -181,7 +182,7 @@ ORDER BY
 -- Mostra a quantidade de eventos recebidos por cada usuário
 SELECT
   user_id,
-  SUM(event_count) AS total_events
+  SUM(occurrences) AS total_events
 FROM
   user_event_counts
 GROUP BY
@@ -193,7 +194,7 @@ ORDER BY
 SELECT
   user_id,
   event_type,
-  SUM(event_count) AS total_by_type
+  SUM(occurrences) AS total_by_type
 FROM
   user_event_counts
 GROUP BY
