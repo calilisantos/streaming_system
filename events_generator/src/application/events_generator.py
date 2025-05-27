@@ -16,6 +16,14 @@ class EventsGenerator:
             topic_encode=self._topic.DEFAULT_ENCODE,
             topic_name=self._topic.TOPIC_NAME
         )
-        factory = RandomEventFactory(self._users, self._products, self._actions)
-        runner = EventLoopRunner(interval=self._topic.WRITE_INTERVAL, factory=factory, writer=writer)
+        factory = RandomEventFactory(
+            users=self._users, 
+            products=self._products, 
+            actions=self._actions
+        )
+        runner = EventLoopRunner(
+            interval=self._topic.WRITE_INTERVAL, 
+            factory=factory, 
+            writer=writer
+        )
         runner.start()
