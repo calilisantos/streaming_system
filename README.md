@@ -90,7 +90,9 @@ docker volume rm $(docker volume ls -q)  # Remove todos os volumes
 docker-compose build --no-cache
 # na sequência, inicie os serviços
 docker-compose up -d
+```
 
+```bash
 # ou de somente um container (que não seja dependência para outro):
 docker-compose build streaming_ingestion
 docker-compose up -d streaming_ingestion
@@ -149,6 +151,16 @@ psql -U user -d events_storage
 SELECT * FROM event_counts;
 ```
 
+* **limpando tela do console**
+```bash
+Ctrl + L
+```
+
+```bash
+# ou
+\! clear
+```
+
 * **sair do banco:**
 ```bash
 \q
@@ -187,7 +199,9 @@ GROUP BY
   user_id
 ORDER BY
   total_events DESC;
+```
 
+```sql
 -- Mostra a distribuição dos eventos por tipo e por usuário
 SELECT
   user_id,
