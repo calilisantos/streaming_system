@@ -88,8 +88,11 @@ docker volume rm $(docker volume ls -q)  # Remove todos os volumes
 * **reconstruindo aplicação forçando pull das imagens:**
 ```bash
 docker-compose build --no-cache
+# na sequência, inicie os serviços
 docker-compose up -d
+```
 
+```bash
 # ou de somente um container (que não seja dependência para outro):
 docker-compose build streaming_ingestion
 docker-compose up -d streaming_ingestion
@@ -148,6 +151,16 @@ psql -U user -d events_storage
 SELECT * FROM event_counts;
 ```
 
+* **limpando tela do console**
+```bash
+Ctrl + L
+```
+
+```bash
+# ou
+\! clear
+```
+
 * **sair do banco:**
 ```bash
 \q
@@ -165,14 +178,13 @@ exit
 -- Mostra a contagem total de eventos por tipo
 SELECT
   event_type,
-  SUM(event_count) AS total_events
+  SUM(occurrences) AS total_events
 FROM
   event_counts
 GROUP BY
   event_type
 ORDER BY
   total_events DESC;
-
 ```
 
 * **Contagem de eventos por usuário (Tabela user_event_counts):**
@@ -180,19 +192,21 @@ ORDER BY
 -- Mostra a quantidade de eventos recebidos por cada usuário
 SELECT
   user_id,
-  SUM(event_count) AS total_events
+  SUM(occurrences) AS total_events
 FROM
   user_event_counts
 GROUP BY
   user_id
 ORDER BY
   total_events DESC;
+```
 
+```sql
 -- Mostra a distribuição dos eventos por tipo e por usuário
 SELECT
   user_id,
   event_type,
-  SUM(event_count) AS total_by_type
+  SUM(occurrences) AS total_by_type
 FROM
   user_event_counts
 GROUP BY
