@@ -173,8 +173,6 @@ GROUP BY
   event_type
 ORDER BY
   total_events DESC;
-  event_type | total_events
-
 ```
 
 * **Contagem de eventos por usuário (Tabela user_event_counts):**
