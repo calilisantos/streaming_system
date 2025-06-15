@@ -9,6 +9,8 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
     ports:
       - "2181:2181"
+    networks:
+      - storage_network
 
   kafka-server:
     container_name: kafka-server
@@ -31,6 +33,8 @@ services:
       interval: 10s
       retries: 5
       timeout: 5s
+    networks:
+      - storage_network
 
   events_storage:
     container_name: events_storage
@@ -49,6 +53,22 @@ services:
     restart: always
     volumes:
       - ./streaming_ingestion/infrastructure/events_storage.sql:/docker-entrypoint-initdb.d/01_init.sql
+    networks:
+      - storage_network
+
+  storage_serving:
+    container_name: storage_serving
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: "root@admin.com"
+      PGADMIN_DEFAULT_PASSWORD: "1234"
+    ports:
+      - "16543:80"
+    depends_on:
+      events_storage:
+        condition: service_healthy
+    networks:
+      - storage_network
 
   events_generator:
     build:
@@ -64,6 +84,8 @@ services:
       interval: 10s
       retries: 5
       timeout: 5s
+    networks:
+      - storage_network
 
   streaming_ingestion:
     build:
@@ -79,3 +101,9 @@ services:
         condition: service_healthy
     ports:
       - "4040:4040"
+    networks:
+    - storage_network
+
+networks:
+  storage_network:
+    driver: bridge
