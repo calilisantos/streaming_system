@@ -2,12 +2,12 @@
 
 CREATE TABLE IF NOT EXISTS raw_events (
     batch_id VARCHAR(64),
-    "value" JSONB NOT NULL, 
+    "value" TEXT NOT NULL, 
     topic VARCHAR(100) NOT NULL,
     "partition" INT NOT NULL,
     "offset" BIGINT NOT NULL,
     "timestamp" TIMESTAMP NOT NULL,
-    PRIMARY KEY (partition, offset)
+    PRIMARY KEY ("partition", "offset")
 );
 
 CREATE TABLE IF NOT EXISTS parsed_events (
@@ -16,8 +16,8 @@ CREATE TABLE IF NOT EXISTS parsed_events (
     event_type VARCHAR(100) NOT NULL,
     "timestamp" TIMESTAMP NOT NULL,
     game_id BIGINT NOT NULL,
-    payload JSONB NOT NULL,
-    PRIMARY KEY (user_id, timestamp, event_type)
+    payload TEXT NOT NULL,
+    PRIMARY KEY (user_id, "timestamp", event_type)
 );
 
 
