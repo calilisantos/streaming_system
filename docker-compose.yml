@@ -10,7 +10,7 @@ services:
     ports:
       - "2181:2181"
     networks:
-      - storage_network
+      - gateway
 
   kafka-server:
     container_name: kafka-server
@@ -34,7 +34,7 @@ services:
       retries: 5
       timeout: 5s
     networks:
-      - storage_network
+      - gateway
 
   events_storage:
     container_name: events_storage
@@ -54,10 +54,30 @@ services:
     volumes:
       - ./streaming_ingestion/infrastructure/events_storage.sql:/docker-entrypoint-initdb.d/01_init.sql
     networks:
-      - storage_network
+      - gateway
 
-  storage_serving:
-    container_name: storage_serving
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-gateway
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/html:/usr/share/nginx/html:ro
+    ports:
+      - "8080:80"
+    depends_on:
+      storage_admin:
+        condition: service_started
+      metabase:
+        condition: service_started
+      streaming_ingestion:
+        condition: service_started
+    networks:
+      - gateway
+
+
+  storage_admin:
+    container_name: storage_admin
     image: dpage/pgadmin4
     environment:
       PGADMIN_DEFAULT_EMAIL: "root@admin.com"
@@ -68,7 +88,15 @@ services:
       events_storage:
         condition: service_healthy
     networks:
-      - storage_network
+      - gateway
+
+  metabase:
+    container_name: metabase
+    image: metabase/metabase
+    ports:
+      - "3000:3000"
+    networks:
+      - gateway
 
   events_generator:
     build:
@@ -85,7 +113,7 @@ services:
       retries: 5
       timeout: 5s
     networks:
-      - storage_network
+      - gateway
 
   streaming_ingestion:
     build:
@@ -102,8 +130,8 @@ services:
     ports:
       - "4040:4040"
     networks:
-    - storage_network
+    - gateway
 
 networks:
-  storage_network:
+  gateway:
     driver: bridge
