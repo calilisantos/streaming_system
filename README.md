@@ -278,7 +278,7 @@ docker logs -f streaming_ingestion
   * Link direto do serviço: [http://localhost:3000](http://localhost:3000)
 
   * Faça login no Metabase com as seguintes informações:
-    * Em `Username` insira **data__forall@email.com**;
+    * Em `Username` insira **data_forall@email.com**;
     * Em `Password` insira **StrongPassword123**.
 
     ![Setup Metabase](docs/metabase_setup.png)
