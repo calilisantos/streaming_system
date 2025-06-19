@@ -21,6 +21,7 @@ O objetivo deste projeto é simular um sistema de ingestão de eventos em tempo 
   - [Acessando banco de dados](#sql)
     - [Visualizando métricas](#metrics)
   - [Acompanhando ingestão](#ingestion)
+  - [Camada de serviços](#graph_ui)
 - [Próximos passos](#next)
 
 ## <a id='arch'>[Decisões arquiteturais](#topicos)</a>
