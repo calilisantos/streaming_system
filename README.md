@@ -22,7 +22,11 @@ O objetivo deste projeto é criar um sandbox simulando um sistema de ingestão d
     - [Visualizando métricas](#metrics)
   - [Acompanhando ingestão](#ingestion)
   - [Camada de serviços](#graph_ui)
+    - [Acessando Índice de Serviços](#index)
+    - [Acessando Metabase](#metabase)
 - [Próximos passos](#next)
+
+---
 
 ## <a id='arch'>[Decisões arquiteturais](#topicos)</a>
 
@@ -42,6 +46,8 @@ São oito (!) serviços executando em conjunto:
 - **metabase_init**: Serviço que executa um script shell para criar usuário e conectar o `events_storage` com o `metabase`
 - **nginx**: Servidor web opensource, atualmente usado como índice dos serviços de `Spark UI` e do `Metabase`
 
+---
+
 ### <a id='eer'>[Diagrama das entidades](#topicos)</a>
 
 Baseado em **um sistema Kappa e o modelo medalhão (multi-hop)**, os artefatos de dados gerados são:
@@ -54,6 +60,8 @@ Baseado em **um sistema Kappa e o modelo medalhão (multi-hop)**, os artefatos d
 - **user_event_counts**: tabela que agrega a contagem de eventos por usuário, na janela de tempo da ingestão.
 - **user_avg_waiting_time**: tabela que agrega o tempo médio de espera dos últimos 3 minutos por usuário, na janela de tempo da ingestão.
 
+---
+
 ## <a id='executing'>[Executando projeto](#topicos)</a>
 
 ### <a id='starting'>[Iniciando os serviços](#topicos)</a>
@@ -64,6 +72,8 @@ Na raiz do projeto, execute o comandos abaixo para os recursos correspondentes `
 ```bash
 docker-compose up -d # requisito para os recursos abaixo
 ```
+
+---
 
 ### <a id='evolving'>[Evoluindo o sistema](#topicos)</a>
 
@@ -85,13 +95,22 @@ docker volume ls  # Verifica se ainda há volumes
 * **removendo individualmente se necessário:**
 ```bash
 docker rm -f $(docker ps -aq)  # Remove todos os containers
+```
+
+```bash
 docker rmi -f $(docker images -q)  # Remove todas as imagens
+```
+
+```bash
 docker volume rm $(docker volume ls -q)  # Remove todos os volumes
 ```
 
 * **reconstruindo aplicação forçando pull das imagens:**
 ```bash
 docker-compose build --no-cache
+```
+
+```bash
 # na sequência, inicie os serviços
 docker-compose up -d
 ```
@@ -99,6 +118,9 @@ docker-compose up -d
 ```bash
 # ou de somente um container (que não seja dependência para outro):
 docker-compose build streaming_ingestion
+```
+
+```bash
 docker-compose up -d streaming_ingestion
 ```
 
@@ -111,12 +133,18 @@ docker-compose logs -f events_generator
 
 ![Sample do projeto](docs/sample.gif)
 
+---
+
 ### <a id='lambda'>[Acompanhando geração de eventos](#topicos)</a>
+
+---
 
 * **acompanhando logs do events_generator:**
 ```bash
 docker logs -f events_generator
 ```
+
+---
 
 ### <a id='kafka'>[Acessando mensageria](#topicos)</a>
 
@@ -134,6 +162,8 @@ docker exec -it kafka-server kafka-topics --describe --topic app-events --bootst
 ```bash
 docker exec -it kafka-server kafka-console-consumer --topic app-events --from-beginning --bootstrap-server kafka-server:9092
 ```
+
+---
 
 ### <a id='sql'>[Acessando banco de dados](#topicos)</a>
 
@@ -247,6 +277,8 @@ ORDER BY
 LIMIT 10;
 ```
 
+---
+
 ### <a id='ingestion'>[Acompanhando ingestão](#topicos)</a>
 
 * **acompanhando logs do Spark Streaming:**
@@ -256,25 +288,22 @@ docker logs -f streaming_ingestion
 
 * **acessando Spark UI:**
   * [http://localhost:4040](http://localhost:4040)
-  
-### <a id='next'>[Próximos passos](#topicos)</a>
-* Adicionar camada de serving dos dados: 
-  * Configurar recursos de segurança com nginx
-* Tuning do streaming_ingestion:
-  * Via Spark confs;
-  * Com refatoração do código-fonte;
-  * Integração com logs e configs do events_generator pensando em boas práticas
-* Prover integração contínua:
-  * Provisionar a aplicação
-  * Com esteira CI/CD
-  * Com orquestração dos containers via Kubernetes
+
+---
 
 ### <a id='graph_ui'>[Camada de serviços](#topicos)</a>
 
-* **Acessando Índice de Serviços:**
+* **acompanhando logs da configuração do metabase:**
+```bash
+docker logs -f metabase_init
+```
+
+### <a id='index'>[Acessando Índice de Serviços](#topicos)</a>
+
   * [http://localhost:8080](http://localhost:8080)
 
-* **Acessando Metabase:**
+### <a id='metabase'>[Acessando Metabase](#topicos)</a>
+
   * Documentação das APIs do metabase: [http://localhost:3000/api/docs](http://localhost:3000/api/docs)
 
   * Link direto do serviço: [http://localhost:3000](http://localhost:3000)
@@ -288,3 +317,17 @@ docker logs -f streaming_ingestion
   * clique no botão `New` para interagir com o sevidor Postgres, ou use algumas das sugestões da tela inicial
 
     ![Consultado os dados](docs/metabase_serving.png)
+
+---
+
+### <a id='next'>[Próximos passos](#topicos)</a>
+* Adicionar camada de serving dos dados: 
+  * Configurar recursos de segurança com nginx
+* Tuning do streaming_ingestion:
+  * Via Spark confs;
+  * Com refatoração do código-fonte;
+  * Integração com logs e configs do events_generator pensando em boas práticas
+* Prover integração contínua:
+  * Provisionar a aplicação
+  * Com esteira CI/CD
+  * Com orquestração dos containers via Kubernetes
