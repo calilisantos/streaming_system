@@ -1,9 +1,9 @@
 # Boas vindas ao **streaming_system**!
 
-O objetivo deste projeto é simular um sistema de ingestão de eventos em tempo real, integrando o **Apache Kafka** como serviço de mensageria e o storage dos eventos com **PostgreSQL** através do **Apache Spark**.
+O objetivo deste projeto é criar um sandbox simulando um sistema de ingestão de eventos em tempo real (micro-batch), integrando o **Apache Kafka** como serviço de mensageria, **PostgreSQL** como lakebase, através do **Apache Spark** como motor de ingestão, e o **Metabase** como camada de serviço dos dados (serving layer).
 
-> **IMPORTANTE: Todos os cenários consideram a execução do projeto à partir da raiz do projeto.
->  Logo após cloná-lo abra a pasta resultado em seu terminal:**
+> **IMPORTANTE: Todos os cenários consideram a execução do projeto à partir do seu diretório raiz.
+>  Logo após cloná-lo, abra a pasta resultado em seu terminal:**
   >  ```bash
   >  cd streaming_system
   >  ```
@@ -34,11 +34,11 @@ São oito (!) serviços executando em conjunto:
 
 - **kafka-server**: Servidor **Apache Kafka** que armazena o tópico **app-events**.
 - **zookeeper**:  Serviço que utiliza o **Apache Zookeeper** como gerenciador do servidor Kafka, permitindo a comunicação com seus recursos.
-- **events_generator**: Gerador de eventos aleatórios para o tópico **app-events** no **Apache Kafka** `a cada 5 segundos`, simulando o comportamento de quatro pessoas usuárias em uma aplicação.
+- **events_generator**: Serviço python que gera eventos aleatórios para o tópico **app-events** no **Apache Kafka** `a cada 5 segundos`, simulando o comportamento de quatro pessoas usuárias em uma aplicação.
   - baseado em **clean-architecture**
 - **streaming_ingestion**: Serviço **Apache Spark** que consome os eventos do tópico **app-events**, com as soluções `streaming` do motor, e os armazena no banco de dados **events_storage** `a cada minuto`.
-- **events_storage**: Servidor de banco de dados **PostgreSQL** que armazena os eventos recebidos, representando um **[datalake](#eer)**
-- **metabase**: Solução opensource de Business Inteligence, escolhida como **serving layer**, para consultas `SQL` ao storage, e `construção de visualizações` dos seus dados
+- **events_storage**: Servidor de banco de dados **PostgreSQL** que armazena os eventos recebidos, representando um **[datalake/lakebase](#eer)**
+- **metabase**: Solução opensource de Business Inteligence, escolhida como **serving layer**, habilitando consultas `SQL` ao storage, e `construção de visualizações` dos seus dados
 - **metabase_init**: Serviço que executa um script shell para criar usuário e conectar o `events_storage` com o `metabase`
 - **nginx**: Servidor web opensource, atualmente usado como índice dos serviços de `Spark UI` e do `Metabase`
 
