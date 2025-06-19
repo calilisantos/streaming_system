@@ -1,0 +1,11 @@
+FROM ubuntu:22.04
+
+RUN apt-get update && \
+    apt-get install -y curl jq && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY init_metabase.sh /init/init_metabase.sh
+RUN chmod +x /init/init_metabase.sh
+
+ENTRYPOINT ["/init/init_metabase.sh"]

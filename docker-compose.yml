@@ -34,6 +34,7 @@ services:
 
   events_storage:
     container_name: events_storage
+    image: postgres:13
     environment:
       POSTGRES_DB: events_storage
       POSTGRES_USER: user
@@ -43,7 +44,6 @@ services:
       interval: 10s
       retries: 5
       timeout: 5s
-    image: postgres:13
     ports:
       - "5432:5432"
     restart: always
@@ -52,24 +52,39 @@ services:
 
   metabase:
     container_name: metabase
-    image: metabase/metabase
+    image: metabase/metabase:v0.54.x
+    healthcheck:
+      test: >
+        sh -c "curl -s http://localhost:3000/api/health | grep -q '\"status\":\"ok\"'"
+      interval: 12s
+      retries: 5
+      timeout: 3s
     ports:
       - "3000:3000"
 
+  metabase_init:
+    build:
+      context: serving_layer/metabase/init/.
+      dockerfile: Dockerfile.Init
+    container_name: metabase_init
+    depends_on:
+      metabase:
+        condition: service_healthy
+
   nginx:
-    image: nginx:alpine
     container_name: nginx-gateway
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./nginx/html:/usr/share/nginx/html:ro
-    ports:
-      - "8080:80"
+    image: nginx:alpine
     depends_on:
       metabase:
         condition: service_started
       streaming_ingestion:
         condition: service_started
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/html:/usr/share/nginx/html:ro
 
 
   events_generator:
@@ -80,12 +95,12 @@ services:
     depends_on:
       kafka-server:
         condition: service_healthy
-    restart: on-failure
     healthcheck:
       test: ["CMD-SHELL", "grep -q 'Writing event' /app/logs/events_generator.log"]
       interval: 10s
       retries: 5
       timeout: 5s
+    restart: on-failure
 
   streaming_ingestion:
     build:

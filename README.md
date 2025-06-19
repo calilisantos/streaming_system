@@ -30,15 +30,16 @@ O objetivo deste projeto é simular um sistema de ingestão de eventos em tempo 
 
 ![Desenho do sistema](docs/system_design_v3.png)
 
-São sete serviços executando em conjunto:
+São oito (!) serviços executando em conjunto:
 
 - **kafka-server**: Servidor **Apache Kafka** que armazena o tópico **app-events**.
-- **zookeeper**:  serviço que utiliza o **Apache Zookeeper** como gerenciador do servidor Kafka, permitindo a comunicação com seus recursos.
-- **events_generator**: gerador de eventos aleatórios para o tópico **app-events** no **Apache Kafka** `a cada 5 segundos`.
+- **zookeeper**:  Serviço que utiliza o **Apache Zookeeper** como gerenciador do servidor Kafka, permitindo a comunicação com seus recursos.
+- **events_generator**: Gerador de eventos aleatórios para o tópico **app-events** no **Apache Kafka** `a cada 5 segundos`, simulando o comportamento de quatro pessoas usuárias em uma aplicação.
   - baseado em **clean-architecture**
 - **streaming_ingestion**: Serviço **Apache Spark** que consome os eventos do tópico **app-events**, com as soluções `streaming` do motor, e os armazena no banco de dados **events_storage** `a cada minuto`.
 - **events_storage**: Servidor de banco de dados **PostgreSQL** que armazena os eventos recebidos, representando um **[datalake](#eer)**
-- **metabase**: Solução opensource de Business Inteligence, escolhida como **serving layer**, para consultas `SQL` ao storage, e construção de visualizações dos seus dados
+- **metabase**: Solução opensource de Business Inteligence, escolhida como **serving layer**, para consultas `SQL` ao storage, e `construção de visualizações` dos seus dados
+- **metabase_init**: Serviço que executa um script shell para criar usuário e conectar o `events_storage` com o `metabase`
 - **nginx**: Servidor web opensource, atualmente usado como índice dos serviços de `Spark UI` e do `Metabase`
 
 ### <a id='eer'>[Diagrama das entidades](#topicos)</a>
@@ -256,8 +257,7 @@ docker logs -f streaming_ingestion
   
 ### <a id='next'>[Próximos passos](#topicos)</a>
 * Adicionar camada de serving dos dados: 
-  * Com solução de visualização (como streamlit)
-  * Com interface ao banco de dados (como pgadmin)
+  * Configurar recursos de segurança com nginx
 * Tuning do streaming_ingestion:
   * Via Spark confs;
   * Com refatoração do código-fonte;
@@ -269,28 +269,20 @@ docker logs -f streaming_ingestion
 
 ### <a id='graph_ui'>[Camada de serviços](#topicos)</a>
 
-* **acessando Índice de Serviços:**
+* **Acessando Índice de Serviços:**
   * [http://localhost:8080](http://localhost:8080)
 
-* **acessando Metabase diretamente:**
-  * [http://localhost:3000](http://localhost:3000)
+* **Acessando Metabase:**
+  * Documentação das APIs do metabase: [http://localhost:3000/api/docs](http://localhost:3000/api/docs)
 
-  * faça um cadastro com quaisquer valores
-    * email com qualquer domínio que use `@`
-    * senha com no mínimo 6 caracteres
+  * Link direto do serviço: [http://localhost:3000](http://localhost:3000)
+
+  * Faça login no Metabase com as seguintes informações:
+    * Em `Username` insira **data__forall@email.com**;
+    * Em `Password` insira **StrongPassword123**.
 
     ![Setup Metabase](docs/metabase_setup.png)
 
-  * conecte com o storage (no setup ou depois)
-    * Selecione o conector `PostgreSQL`
-    * Em `Display name` informe qualquer valor;
-    * Em `Port` mantenha/insira **5432**;
-    * Em `Host` e `Database name`, insira `events_storage`;
-    * Em `Username` insira **user**;
-    * Em `Password` insira **password**.
-
-    ![Conectando database com Metabase](docs/metabase_database_connection.png)
-  
   * clique no botão `New` para interagir com o sevidor Postgres, ou use algumas das sugestões da tela inicial
 
     ![Consultado os dados](docs/metabase_serving.png)
