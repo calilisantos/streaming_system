@@ -12,7 +12,7 @@ TABLE_COLUMNS = {
 spark = (
     SparkSession.builder
     .appName("streaming-ingestion")
-    .master("local[*]")
+    .master("local[2]")
     .getOrCreate()
 )
 spark.sparkContext.setLogLevel("ERROR")
@@ -64,6 +64,7 @@ raw_data = (
     .writeStream
     .outputMode("append")
     .foreachBatch(lambda df, epoch_id: write_to_postgres(df, epoch_id, "raw_events"))
+    .trigger(processingTime="10 seconds")
     .start()
 )
 
@@ -79,6 +80,7 @@ parsed_data = (
     .writeStream
     .outputMode("append")
     .foreachBatch(lambda df, epoch_id: write_to_postgres(df, epoch_id, "parsed_events"))
+    .trigger(processingTime="10 seconds")
     .start()
 )
 
