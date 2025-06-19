@@ -9,8 +9,6 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
     ports:
       - "2181:2181"
-    networks:
-      - gateway
 
   kafka-server:
     container_name: kafka-server
@@ -33,8 +31,6 @@ services:
       interval: 10s
       retries: 5
       timeout: 5s
-    networks:
-      - gateway
 
   events_storage:
     container_name: events_storage
@@ -53,8 +49,12 @@ services:
     restart: always
     volumes:
       - ./streaming_ingestion/infrastructure/events_storage.sql:/docker-entrypoint-initdb.d/01_init.sql
-    networks:
-      - gateway
+
+  metabase:
+    container_name: metabase
+    image: metabase/metabase
+    ports:
+      - "3000:3000"
 
   nginx:
     image: nginx:alpine
@@ -66,37 +66,11 @@ services:
     ports:
       - "8080:80"
     depends_on:
-      storage_admin:
-        condition: service_started
       metabase:
         condition: service_started
       streaming_ingestion:
         condition: service_started
-    networks:
-      - gateway
 
-
-  storage_admin:
-    container_name: storage_admin
-    image: dpage/pgadmin4
-    environment:
-      PGADMIN_DEFAULT_EMAIL: "root@admin.com"
-      PGADMIN_DEFAULT_PASSWORD: "1234"
-    ports:
-      - "16543:80"
-    depends_on:
-      events_storage:
-        condition: service_healthy
-    networks:
-      - gateway
-
-  metabase:
-    container_name: metabase
-    image: metabase/metabase
-    ports:
-      - "3000:3000"
-    networks:
-      - gateway
 
   events_generator:
     build:
@@ -112,8 +86,6 @@ services:
       interval: 10s
       retries: 5
       timeout: 5s
-    networks:
-      - gateway
 
   streaming_ingestion:
     build:
@@ -129,9 +101,3 @@ services:
         condition: service_healthy
     ports:
       - "4040:4040"
-    networks:
-    - gateway
-
-networks:
-  gateway:
-    driver: bridge
